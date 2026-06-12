@@ -13,10 +13,14 @@ const Navbar = () => {
         navigate('/login');
     };
 
-    // Safely calculate total items in the cart array
-    const cartItemCount = Array.isArray(cart) 
-        ? cart.reduce((total, item) => total + item.quantity, 0) 
-        : 0;
+    // Ultra-safe check to prevent "reduce is not a function" errors
+    // This handles both the correct array structure and prevents crashes if the data is corrupted
+    let cartItemCount = 0;
+    if (Array.isArray(cart)) {
+        cartItemCount = cart.reduce((total, item) => total + (item?.quantity || 0), 0);
+    } else if (cart && Array.isArray(cart.items)) {
+        cartItemCount = cart.items.reduce((total, item) => total + (item?.quantity || 0), 0);
+    }
 
     return (
         <nav className="bg-white shadow-md sticky top-0 z-50">
@@ -29,6 +33,7 @@ const Navbar = () => {
                         <Link to="/" className="text-gray-600 hover:text-indigo-600 font-medium">Home</Link>
                         {user ? (
                             <>
+                                <Link to="/add-product" className="text-gray-600 hover:text-indigo-600 font-medium">Add Product</Link>
                                 <Link to="/orders" className="text-gray-600 hover:text-indigo-600 font-medium">Orders</Link>
                                 <Link to="/cart" className="text-gray-600 hover:text-indigo-600 font-medium relative flex items-center">
                                     Cart
@@ -38,9 +43,20 @@ const Navbar = () => {
                                         </span>
                                     )}
                                 </Link>
+                                
+                                {/* User Profile Badge */}
+                                <div className="flex items-center space-x-2 bg-gray-50 border border-gray-200 py-1 pl-1 pr-4 rounded-full ml-2">
+                                    <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-inner">
+                                        {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                                    </div>
+                                    <span className="font-bold text-gray-800 text-sm hidden sm:block">
+                                        {user.name}
+                                    </span>
+                                </div>
+
                                 <button 
                                     onClick={handleLogout}
-                                    className="text-gray-600 hover:text-red-600 font-medium transition-colors"
+                                    className="text-gray-600 hover:text-red-600 font-medium transition-colors ml-4"
                                 >
                                     Logout
                                 </button>

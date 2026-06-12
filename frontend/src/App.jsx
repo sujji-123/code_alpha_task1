@@ -7,6 +7,7 @@ import Cart from './components/Cart';
 import Login from './components/Login';
 import Register from './components/Register';
 import Orders from './components/Orders';
+import AddProduct from './components/AddProduct';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 
@@ -25,6 +26,7 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/orders" element={<Orders />} />
+                <Route path="/add-product" element={<AddProduct />} />
               </Routes>
             </main>
           </div>

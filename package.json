@@ -8,6 +8,9 @@
   "scripts": {
     "dev:frontend": "yarn workspace frontend dev",
     "dev:backend": "yarn workspace backend dev",
-    "build": "yarn workspaces foreach run build"
+    "dev": "concurrently \"yarn workspace frontend dev\" \"yarn workspace backend dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3"
   }
 }

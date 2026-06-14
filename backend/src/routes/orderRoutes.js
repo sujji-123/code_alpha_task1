@@ -1,56 +1,61 @@
-import express from "express";
-import Order from "../models/Order.js";
-import Product from "../models/Product.js";
-import authMiddleware from "../middleware/authMiddleware.js";
+import express from 'express';
+import Order from '../models/Order.js';
+import Product from '../models/Product.js';
+import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// Create order (protected route)
-router.post("/", authMiddleware, async (req, res) => {
-  try {
-    const { products } = req.body;
-    let totalAmount = 0;
-    const orderProducts = [];
-    
-    // Calculate total and get product details
-    for (const item of products) {
-      const product = await Product.findById(item.productId);
-      if (!product) {
-        return res.status(404).json({ message: `Product ${item.productId} not found` });
-      }
-      
-      const subtotal = product.price * item.quantity;
-      totalAmount += subtotal;
-      
-      orderProducts.push({
-        product: product._id,
-        quantity: item.quantity,
-        price: product.price
-      });
+// POST process checkout
+router.post('/', protect, async (req, res) => {
+    try {
+        const { items, totalAmount, shippingAddress } = req.body;
+
+        if (!items || items.length === 0) {
+            return res.status(400).json({ message: 'No order items' });
+        }
+
+        // 1. Verify stock before creating order
+        for (let item of items) {
+            const product = await Product.findById(item.product);
+            if (!product) {
+                return res.status(404).json({ message: `Product not found: ${item.product}` });
+            }
+            if (product.countInStock < item.quantity) {
+                return res.status(400).json({ message: `Insufficient stock for ${product.name}. Available: ${product.countInStock}` });
+            }
+        }
+
+        // 2. Create the order
+        const order = new Order({
+            user: req.user._id,
+            items,
+            shippingAddress,
+            totalAmount
+        });
+
+        const createdOrder = await order.save();
+
+        // 3. Deduct stock quantities
+        for (let item of items) {
+            const product = await Product.findById(item.product);
+            product.countInStock -= item.quantity;
+            await product.save();
+        }
+
+        res.status(201).json(createdOrder);
+    } catch (error) {
+        res.status(500).json({ message: 'Order processing failed', error: error.message });
     }
-    
-    const order = await Order.create({
-      user: req.userId,
-      products: orderProducts,
-      totalAmount
-    });
-    
-    res.status(201).json(order);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
 });
 
-// Get user orders (protected route)
-router.get("/my-orders", authMiddleware, async (req, res) => {
-  try {
-    const orders = await Order.find({ user: req.userId })
-      .populate("products.product")
-      .sort({ createdAt: -1 });
-    res.json(orders);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
+// GET user orders
+router.get('/', protect, async (req, res) => {
+    try {
+        const orders = await Order.find({ user: req.user._id }).populate('items.product', 'name imageUrl');
+        res.json(orders);
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to fetch orders' });
+    }
 });
 
 export default router;

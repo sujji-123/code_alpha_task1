@@ -1,7 +1,25 @@
 import express from 'express';
 import Product from '../models/Product.js';
+import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+
+// Fallback image map to guarantee correct visuals
+const imageMap = {
+    'Mobiles': 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800&auto=format&fit=crop',
+    'Laptops': 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=800&auto=format&fit=crop',
+    'Headphones': 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop',
+    'Earbuds': 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?q=80&w=800&auto=format&fit=crop',
+    'Smart Watches': 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=800&auto=format&fit=crop',
+    'Cameras': 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=800&auto=format&fit=crop',
+    'Men\'s Clothing': 'https://images.unsplash.com/photo-1617137968427-85924c800a22?q=80&w=800&auto=format&fit=crop',
+    'Women\'s Clothing': 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=800&auto=format&fit=crop',
+    'Shoes': 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=800&auto=format&fit=crop',
+    'Face Wash': 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?q=80&w=800&auto=format&fit=crop',
+    'Groceries': 'https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=800&auto=format&fit=crop',
+    'Home & Kitchen': 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?q=80&w=800&auto=format&fit=crop',
+    'Default': 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop'
+};
 
 // GET all products
 router.get('/', async (req, res) => {
@@ -27,31 +45,54 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// POST create a new product
-router.post('/', async (req, res) => {
+// POST create a new product (Protected - Requires User)
+router.post('/', protect, async (req, res) => {
     try {
-        const { name, description, price, category, countInStock } = req.body;
+        const { name, brand, description, price, category, subCategory, countInStock, attributes } = req.body;
         
-        // Safely format the name without using encodeURIComponent to prevent ReferenceErrors
-        const formattedName = name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-        const formattedCategory = category.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-        
-        // Use a strict keyword search for highly relevant product images
-        const imageUrl = `https://loremflickr.com/600/600/${formattedCategory},${formattedName}/all`;
+        // Select accurate image based on subCategory or category
+        const imageUrl = imageMap[subCategory] || imageMap[category] || imageMap['Default'];
 
         const product = new Product({
             name,
+            brand,
             description,
             price,
             category,
+            subCategory,
             countInStock: countInStock || 1,
-            imageUrl
+            attributes: attributes || {},
+            imageUrl,
+            creatorId: req.user._id // Assign the current user as creator
         });
 
         const createdProduct = await product.save();
         res.status(201).json(createdProduct);
     } catch (error) {
         res.status(500).json({ message: 'Failed to create product', error: error.message });
+    }
+});
+
+// PUT refill stock (Protected - Only Creator can refill)
+router.put('/:id/refill', protect, async (req, res) => {
+    try {
+        const { amount } = req.body;
+        const product = await Product.findById(req.params.id);
+
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        // Verify the user requesting the refill is the one who created it
+        if (product.creatorId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'Not authorized. Only the creator can refill this product.' });
+        }
+
+        product.countInStock += Number(amount);
+        const updatedProduct = await product.save();
+        res.json(updatedProduct);
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to refill stock', error: error.message });
     }
 });
 

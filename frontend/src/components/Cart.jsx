@@ -1,35 +1,13 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext } from 'react';
 import { CartContext } from '../context/CartContext';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../services/api';
 
 const Cart = () => {
-    const { cart, removeFromCart, updateQuantity, clearCart, getCartTotal } = useContext(CartContext);
-    const [isCheckingOut, setIsCheckingOut] = useState(false);
+    const { cart, removeFromCart, updateQuantity, getCartTotal } = useContext(CartContext);
     const navigate = useNavigate();
 
-    const handleCheckout = async () => {
-        setIsCheckingOut(true);
-        try {
-            const orderItems = cart.map(item => ({
-                product: item.id, // Using the ID explicitly saved in the context
-                quantity: item.quantity,
-                price: item.price
-            }));
-
-            await api.post('/orders', { 
-                items: orderItems, 
-                totalAmount: getCartTotal() 
-            });
-            
-            clearCart();
-            navigate('/orders');
-        } catch (error) {
-            console.error("Checkout failed:", error);
-            alert("There was an issue processing your checkout.");
-        } finally {
-            setIsCheckingOut(false);
-        }
+    const handleProceedToCheckout = () => {
+        navigate('/checkout');
     };
 
     if (!Array.isArray(cart) || cart.length === 0) {
@@ -54,14 +32,15 @@ const Cart = () => {
                             <img src={item.imageUrl || 'https://via.placeholder.com/100'} alt={item.name} className="w-24 h-24 object-cover rounded-xl shadow-sm" />
                             <div>
                                 <h3 className="text-lg font-bold text-gray-900">{item.name}</h3>
+                                <p className="text-gray-500 text-sm">{item.brand}</p>
                                 <p className="text-indigo-600 font-semibold mt-1">${item.price}</p>
                             </div>
                         </div>
                         <div className="flex items-center space-x-6 mt-4 sm:mt-0 w-full sm:w-auto justify-between sm:justify-end">
                             <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-                                <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="px-4 py-2 bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors">-</button>
+                                <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="px-4 py-2 bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors">-</button>
                                 <span className="px-4 py-2 font-medium text-gray-900 min-w-[3rem] text-center">{item.quantity}</span>
-                                <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="px-4 py-2 bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors">+</button>
+                                <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="px-4 py-2 bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors">+</button>
                             </div>
                             <button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-600 font-medium p-2">Remove</button>
                         </div>
@@ -73,8 +52,8 @@ const Cart = () => {
                     <span className="text-gray-500 block mb-1">Order Total</span>
                     <span className="text-3xl font-extrabold text-gray-900">${getCartTotal().toFixed(2)}</span>
                 </div>
-                <button onClick={handleCheckout} disabled={isCheckingOut} className="mt-6 sm:mt-0 bg-gray-900 text-white px-10 py-4 rounded-xl font-bold hover:bg-gray-800 shadow-md transition-colors w-full sm:w-auto disabled:bg-gray-400">
-                    {isCheckingOut ? 'Processing...' : 'Proceed to Checkout'}
+                <button onClick={handleProceedToCheckout} className="mt-6 sm:mt-0 bg-gray-900 text-white px-10 py-4 rounded-xl font-bold hover:bg-gray-800 shadow-md transition-colors w-full sm:w-auto">
+                    Proceed to Checkout
                 </button>
             </div>
         </div>

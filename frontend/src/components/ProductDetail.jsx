@@ -13,6 +13,8 @@ const ProductDetail = () => {
     const { addToCart } = useContext(CartContext);
     const { user } = useContext(AuthContext);
 
+    const fallbackImage = 'https://placehold.co/600x600/f3f4f6/4b5563?text=No+Image+Available';
+
     useEffect(() => {
         fetchProduct();
     }, [id]);
@@ -41,7 +43,7 @@ const ProductDetail = () => {
         try {
             await api.put(`/products/${id}/refill`, { amount: Number(refillAmount) });
             setRefillAmount('');
-            fetchProduct(); // Refresh data to show new stock
+            fetchProduct(); 
             alert('Stock successfully refilled!');
         } catch (error) {
             alert(error.response?.data?.message || 'Failed to refill stock.');
@@ -56,12 +58,15 @@ const ProductDetail = () => {
     return (
         <div className="max-w-6xl mx-auto bg-white p-6 md:p-10 rounded-2xl shadow-sm border mt-6 mb-16">
             <div className="flex flex-col md:flex-row gap-10">
-                {/* Image Section */}
                 <div className="md:w-5/12 flex justify-center items-start">
-                    <img className="w-full max-w-md object-cover rounded-xl shadow-sm border border-gray-100" src={product.imageUrl} alt={product.name} />
+                    <img 
+                        className="w-full max-w-md object-cover rounded-xl shadow-sm border border-gray-100" 
+                        src={product.imageUrl || fallbackImage} 
+                        onError={(e) => { e.target.src = fallbackImage; }}
+                        alt={product.name} 
+                    />
                 </div>
                 
-                {/* Details Section */}
                 <div className="md:w-7/12 flex flex-col">
                     <div className="text-sm font-bold text-indigo-600 mb-2 uppercase tracking-wide">
                         {product.brand} • {product.subCategory || product.category}
@@ -69,7 +74,6 @@ const ProductDetail = () => {
                     <h1 className="text-3xl font-extrabold text-gray-900 mb-2">{product.name}</h1>
                     <div className="text-3xl font-bold text-gray-900 mb-4 border-b pb-4">${product.price}</div>
                     
-                    {/* Stock Status */}
                     <div className="mb-6">
                         {outOfStock ? (
                             <span className="text-red-600 font-bold bg-red-50 px-3 py-1 rounded-md">Currently Out of Stock</span>
@@ -80,7 +84,6 @@ const ProductDetail = () => {
 
                     <p className="text-gray-600 leading-relaxed mb-8">{product.description}</p>
 
-                    {/* Specifications Table */}
                     {product.attributes && Object.keys(product.attributes).length > 0 && (
                         <div className="mb-8">
                             <h3 className="text-lg font-bold mb-3 border-b pb-2">Specifications</h3>
@@ -97,20 +100,26 @@ const ProductDetail = () => {
                         </div>
                     )}
 
-                    {/* Action Area */}
                     <div className="mt-auto pt-6 border-t flex flex-col sm:flex-row gap-4 items-end sm:items-center">
-                        {!outOfStock && (
-                            <div className="flex items-center border rounded-xl overflow-hidden bg-gray-50">
-                                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-4 py-3 text-gray-600 hover:bg-gray-200">-</button>
-                                <span className="px-4 py-3 font-bold bg-white">{quantity}</span>
-                                <button onClick={() => setQuantity(Math.min(product.countInStock, quantity + 1))} className="px-4 py-3 text-gray-600 hover:bg-gray-200">+</button>
+                        {isCreator ? (
+                            <div className="w-full text-center p-4 bg-orange-100 text-orange-800 rounded-xl font-bold">
+                                You are the seller of this product. You cannot purchase it.
                             </div>
+                        ) : (
+                            <>
+                                {!outOfStock && (
+                                    <div className="flex items-center border rounded-xl overflow-hidden bg-gray-50">
+                                        <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-4 py-3 text-gray-600 hover:bg-gray-200">-</button>
+                                        <span className="px-4 py-3 font-bold bg-white">{quantity}</span>
+                                        <button onClick={() => setQuantity(Math.min(product.countInStock, quantity + 1))} className="px-4 py-3 text-gray-600 hover:bg-gray-200">+</button>
+                                    </div>
+                                )}
+                                <button disabled={outOfStock} onClick={handleAddToCart} className="flex-1 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-3 px-6 rounded-xl shadow-sm disabled:opacity-50">Add to Cart</button>
+                                <button disabled={outOfStock} onClick={handleBuyNow} className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl shadow-sm disabled:opacity-50">Buy Now</button>
+                            </>
                         )}
-                        <button disabled={outOfStock} onClick={handleAddToCart} className="flex-1 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-3 px-6 rounded-xl shadow-sm disabled:opacity-50">Add to Cart</button>
-                        <button disabled={outOfStock} onClick={handleBuyNow} className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl shadow-sm disabled:opacity-50">Buy Now</button>
                     </div>
 
-                    {/* Inventory Management Panel (Only visible to creator) */}
                     {isCreator && (
                         <div className="mt-8 p-4 bg-gray-50 border border-gray-200 rounded-xl">
                             <h4 className="text-sm font-bold text-gray-700 mb-2">Admin Inventory Control</h4>

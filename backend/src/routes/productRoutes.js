@@ -4,27 +4,26 @@ import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// Fallback image map to guarantee correct visuals
-const imageMap = {
-    'Mobiles': 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800&auto=format&fit=crop',
+const staticImageMap = {
+    'Mobiles': 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?q=80&w=800&auto=format&fit=crop',
     'Laptops': 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=800&auto=format&fit=crop',
     'Headphones': 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop',
-    'Earbuds': 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?q=80&w=800&auto=format&fit=crop',
-    'Smart Watches': 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=800&auto=format&fit=crop',
-    'Cameras': 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=800&auto=format&fit=crop',
-    'Men\'s Clothing': 'https://images.unsplash.com/photo-1617137968427-85924c800a22?q=80&w=800&auto=format&fit=crop',
-    'Women\'s Clothing': 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=800&auto=format&fit=crop',
+    'Smart Watches': 'https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?q=80&w=800&auto=format&fit=crop',
+    "Men's Clothing": 'https://images.unsplash.com/photo-1596755094514-f87e32f85e23?q=80&w=800&auto=format&fit=crop',
+    "Women's Clothing": 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=800&auto=format&fit=crop',
     'Shoes': 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=800&auto=format&fit=crop',
     'Face Wash': 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?q=80&w=800&auto=format&fit=crop',
-    'Groceries': 'https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=800&auto=format&fit=crop',
-    'Home & Kitchen': 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?q=80&w=800&auto=format&fit=crop',
-    'Default': 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop'
+    'Makeup': 'https://images.unsplash.com/photo-1599305090598-fe179d501227?q=80&w=800&auto=format&fit=crop',
+    'Electronics': 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=800&auto=format&fit=crop',
+    'Fashion': 'https://images.unsplash.com/photo-1596755094514-f87e32f85e23?q=80&w=800&auto=format&fit=crop',
+    'Beauty & Cosmetics': 'https://images.unsplash.com/photo-1599305090598-fe179d501227?q=80&w=800&auto=format&fit=crop',
+    'Default': 'https://placehold.co/600x600/f3f4f6/4b5563?text=No+Image+Available'
 };
 
 // GET all products
 router.get('/', async (req, res) => {
     try {
-        const products = await Product.find({});
+        const products = await Product.find({}).sort({ createdAt: -1 }); 
         res.json(products);
     } catch (error) {
         res.status(500).json({ message: 'Server Error while fetching products' });
@@ -48,10 +47,9 @@ router.get('/:id', async (req, res) => {
 // POST create a new product (Protected - Requires User)
 router.post('/', protect, async (req, res) => {
     try {
-        const { name, brand, description, price, category, subCategory, countInStock, attributes } = req.body;
+        const { name, brand, description, price, category, subCategory, countInStock, attributes, imageUrl } = req.body;
         
-        // Select accurate image based on subCategory or category
-        const imageUrl = imageMap[subCategory] || imageMap[category] || imageMap['Default'];
+        const finalImageUrl = imageUrl || staticImageMap[subCategory] || staticImageMap[category] || staticImageMap['Default'];
 
         const product = new Product({
             name,
@@ -62,8 +60,8 @@ router.post('/', protect, async (req, res) => {
             subCategory,
             countInStock: countInStock || 1,
             attributes: attributes || {},
-            imageUrl,
-            creatorId: req.user._id // Assign the current user as creator
+            imageUrl: finalImageUrl,
+            creatorId: req.user._id
         });
 
         const createdProduct = await product.save();
@@ -83,7 +81,6 @@ router.put('/:id/refill', protect, async (req, res) => {
             return res.status(404).json({ message: 'Product not found' });
         }
 
-        // Verify the user requesting the refill is the one who created it
         if (product.creatorId.toString() !== req.user._id.toString()) {
             return res.status(403).json({ message: 'Not authorized. Only the creator can refill this product.' });
         }

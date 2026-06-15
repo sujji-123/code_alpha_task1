@@ -6,6 +6,8 @@ const Cart = () => {
     const { cart, removeFromCart, updateQuantity, getCartTotal } = useContext(CartContext);
     const navigate = useNavigate();
 
+    const fallbackImage = 'https://placehold.co/600x600/f3f4f6/4b5563?text=No+Image+Available';
+
     const handleProceedToCheckout = () => {
         navigate('/checkout');
     };
@@ -29,7 +31,12 @@ const Cart = () => {
                 {cart.map((item) => (
                     <div key={item.id} className="flex flex-col sm:flex-row items-center justify-between border-b border-gray-50 pb-6 group">
                         <div className="flex items-center space-x-6 w-full sm:w-auto">
-                            <img src={item.imageUrl || 'https://via.placeholder.com/100'} alt={item.name} className="w-24 h-24 object-cover rounded-xl shadow-sm" />
+                            <img 
+                                src={item.imageUrl || fallbackImage} 
+                                onError={(e) => { e.target.src = fallbackImage; }}
+                                alt={item.name} 
+                                className="w-24 h-24 object-cover rounded-xl shadow-sm" 
+                            />
                             <div>
                                 <h3 className="text-lg font-bold text-gray-900">{item.name}</h3>
                                 <p className="text-gray-500 text-sm">{item.brand}</p>

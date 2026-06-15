@@ -8,6 +8,7 @@ import Checkout from './components/Checkout';
 import Login from './components/Login';
 import Register from './components/Register';
 import Orders from './components/Orders';
+import Sales from './components/Sales';
 import AddProduct from './components/AddProduct';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
@@ -28,6 +29,7 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/orders" element={<Orders />} />
+                <Route path="/sales" element={<Sales />} />
                 <Route path="/add-product" element={<AddProduct />} />
               </Routes>
             </main>
